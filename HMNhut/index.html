@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thế Giới Đồ Thể Thao</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        :root { --primary: #0d3b66; --accent: #fb6e2e; --bg: #f4f7f6; --green: #2ecc71; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
+        
+        header { background: var(--primary); color: white; padding: 25px; text-align: center; }
+        .cart-btn { background: var(--accent); color: white; border: none; padding: 12px 25px; border-radius: 25px; cursor: pointer; font-weight: bold; position: relative; margin-top: 10px; }
+        #cart-count { background: red; color: white; border-radius: 50%; padding: 2px 7px; font-size: 0.8rem; position: absolute; top: -5px; right: -5px; }
+
+        nav { display: flex; justify-content: center; gap: 10px; padding: 15px; background: white; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .nav-item { border: none; padding: 10px 20px; border-radius: 20px; cursor: pointer; background: #eee; font-weight: 600; transition: 0.3s; }
+        .nav-item.active { background: #288ad6; color: white; }
+        
+        .container { max-width: 1200px; margin: 20px auto; padding: 0 15px; flex: 1; }
+        .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 25px; }
+        .card { background: white; padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.3s; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 200px; object-fit: cover; border-radius: 8px; margin-bottom: 10px; }
+        .price { color: #d0021b; font-weight: bold; font-size: 1.2rem; margin: 10px 0; }
+        .buy-btn { background: var(--green); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        /* Modal Đa năng */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); overflow-y: auto; }
+        .modal-content { background: #fff; margin: 5% auto; width: 95%; max-width: 500px; border-radius: 12px; padding: 25px; position: relative; animation: slideDown 0.3s; }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
+        .cart-item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #eee; }
+        #checkout-section { display: none; }
+        .input-group { margin-bottom: 15px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .input-group input { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+        
+        footer { background: var(--primary); color: white; padding: 30px 15px; text-align: center; margin-top: 50px; }
+        .footer-links a { color: white; text-decoration: none; margin: 0 15px; font-size: 1.2rem; transition: 0.3s; }
+        .footer-links a:hover { color: var(--accent); }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>THẾ GIỚI ĐỒ THỂ THAO</h1>
+    <button class="cart-btn" onclick="toggleCart(true)">
+        <i class="fa-solid fa-cart-shopping"></i> Giỏ hàng <span id="cart-count">0</span>
+    </button>
+</header>
+
+<nav>
+    <button class="nav-item active" onclick="filterProduct('all', event)">Tất cả</button>
+    <button class="nav-item" onclick="filterProduct('giay', event)">Giày</button>
+    <button class="nav-item" onclick="filterProduct('vot', event)">Vợt & Phụ kiện</button>
+</nav>
+
+<div class="container">
+    <div id="product-grid" class="product-grid"></div>
+</div>
+
+<div id="cart-modal" class="modal">
+    <div class="modal-content">
+        <span style="float:right; cursor:pointer; font-size:24px;" onclick="toggleCart(false)">&times;</span>
+        
+        <div id="cart-section">
+            <h2 style="margin-bottom: 15px; color: var(--primary);">Giỏ hàng của bạn</h2>
+            <div id="cart-items"></div>
+            <div style="margin: 20px 0; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; border-top: 2px solid #eee; padding-top: 15px;">
+                <span>TỔNG CỘNG:</span>
+                <span id="total-price" style="color:red;">0đ</span>
+            </div>
+            <button id="btn-to-checkout" style="width:100%; background:var(--primary); color:white; border:none; padding:15px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="showCheckout()">TIẾP TỤC THANH TOÁN</button>
+        </div>
+
+        <div id="checkout-section">
+            <button onclick="backToCart()" style="background:none; border:none; color:blue; cursor:pointer; margin-bottom:15px;"><i class="fa-solid fa-arrow-left"></i> Quay lại sửa giỏ hàng</button>
+            <h2 style="margin-bottom: 15px; color: var(--primary);">Thông tin giao hàng</h2>
+            <div class="input-group">
+                <label>Họ và tên người nhận</label>
+                <input type="text" id="cus-name" placeholder="Nhập tên của bạn...">
+            </div>
+            <div class="input-group">
+                <label>Số điện thoại</label>
+                <input type="text" id="cus-phone" placeholder="Số điện thoại liên hệ...">
+            </div>
+            <div class="input-group">
+                <label>Địa chỉ nhận hàng</label>
+                <input type="text" id="cus-address" placeholder="Địa chỉ chi tiết...">
+            </div>
+            <button style="width:100%; background:var(--accent); color:white; border:none; padding:15px; border-radius:8px; cursor:pointer; font-weight:bold;" onclick="handleOrder()">HOÀN TẤT ĐẶT HÀNG</button>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-links">
+        <a href="https://facebook.com/yourpage" target="_blank"><i class="fa-brands fa-facebook"></i> Facebook</a>
+        <a href="mailto:contact@thegioithethao.com"><i class="fa-solid fa-envelope"></i> Gmail</a>
+    </div>
+    <p style="margin-top: 15px; font-size: 0.8rem; opacity: 0.7;">&copy; 2026 Thế Giới Đồ Thể Thao. Chào mừng bạn đến mua sắm!</p>
+</footer>
+
+<script>
+    // Danh sách 5 sản phẩm mẫu với link ảnh ổn định
+    const products = [
+        { id: 1, cat: 'giay', name: 'Giày Chạy Bộ Hoka', price: 1250000, img: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500' },
+        { id: 2, cat: 'vot', name: 'Vợt Tennis Wilson Pro', price: 2450000, img: 'https://images.unsplash.com/photo-1622279457486-62dcc4a4bd13?w=500' },
+        { id: 3, cat: 'giay', name: 'Giày Đá Bóng Adidas', price: 1850000, img: 'https://images.unsplash.com/photo-1511886929837-354d827aae26?w=500' },
+        { id: 4, cat: 'vot', name: 'Vợt Cầu Lông Yonex', price: 950000, img: 'https://images.unsplash.com/photo-1626225453076-70121c7f9916?w=500' },
+        { id: 5, cat: 'giay', name: 'Giày Sneaker Nike Air', price: 3200000, img: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=500' }
+    ];
+
+    let cart = [];
+
+    // Hiển thị sản phẩm ra màn hình chính
+    function filterProduct(category, event) {
+        const grid = document.getElementById('product-grid');
+        document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+        if(event) event.target.classList.add('active');
+        const filtered = category === 'all' ? products : products.filter(p => p.cat === category);
+        
+        grid.innerHTML = filtered.map(p => `
+            <div class="card">
+                <img src="${p.img}">
+                <h3>${p.name}</h3>
+                <p class="price">${p.price.toLocaleString()}đ</p>
+                <button class="buy-btn" onclick="addToCart('${p.name}', ${p.price}, '${p.img}')">MUA NGAY</button>
+            </div>
+        `).join('');
+    }
+
+    // Thêm vào giỏ hàng
+    function addToCart(name, price, img) {
+        const item = cart.find(i => i.name === name);
+        if(item) { item.qty++; } else { cart.push({ name, price, img, qty: 1 }); }
+        renderCart();
+        toggleCart(true);
+        backToCart(); 
+    }
+
+    // Tăng giảm số lượng
+    function updateQty(index, change) {
+        cart[index].qty += change;
+        if(cart[index].qty < 1) {
+            if(confirm("Xoá món này?")) cart.splice(index, 1);
+            else cart[index].qty = 1;
+        }
+        renderCart();
+    }
+
+    // Hiển thị nội dung giỏ hàng
+    function renderCart() {
+        const container = document.getElementById('cart-items');
+        let total = 0, totalQty = 0;
+        container.innerHTML = cart.map((item, index) => {
+            total += item.price * item.qty;
+            totalQty += item.qty;
+            return `
+            <div class="cart-item">
+                <img src="${item.img}" style="width:50px; height:50px; object-fit:cover; border-radius:5px;">
+                <div style="flex:1"><b>${item.name}</b><br><span style="color:red;">${(item.price * item.qty).toLocaleString()}đ</span></div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <button onclick="updateQty(${index}, -1)" style="width:25px;">-</button>
+                    <span>${item.qty}</span>
+                    <button onclick="updateQty(${index}, 1)" style="width:25px;">+</button>
+                    <button onclick="removeItem(${index})" style="background:none; border:none; color:#ccc; margin-left:10px;"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>`;
+        }).join('') || '<p style="text-align:center; color:gray; padding:20px;">Trống.</p>';
+        
+        document.getElementById('cart-count').innerText = totalQty;
+        document.getElementById('total-price').innerText = total.toLocaleString() + "đ";
+        document.getElementById('btn-to-checkout').style.display = cart.length > 0 ? "block" : "none";
+    }
+
+    function removeItem(index) {
+        cart.splice(index, 1);
+        renderCart();
+    }
+
+    function toggleCart(show) { document.getElementById('cart-modal').style.display = show ? "block" : "none"; }
+    function showCheckout() { document.getElementById('cart-section').style.display = "none"; document.getElementById('checkout-section').style.display = "block"; }
+    function backToCart() { document.getElementById('cart-section').style.display = "block"; document.getElementById('checkout-section').style.display = "none"; }
+
+    // Xử lý hoàn tất đặt hàng
+    function handleOrder() {
+        const name = document.getElementById('cus-name').value;
+        const phone = document.getElementById('cus-phone').value;
+        const addr = document.getElementById('cus-address').value;
+
+        if (!name || !phone || !addr) return alert("Vui lòng nhập đủ thông tin!");
+
+        alert(`ĐẶT HÀNG THÀNH CÔNG!\n\nChào ${name}, đơn hàng của bạn đang được xử lý.\nTổng tiền: ${document.getElementById('total-price').innerText}`);
+        
+        cart = [];
+        document.querySelectorAll('input').forEach(i => i.value = "");
+        renderCart();
+        toggleCart(false);
+    }
+
+    window.onload = () => filterProduct('all');
+</script>
+</body>
+</html>
